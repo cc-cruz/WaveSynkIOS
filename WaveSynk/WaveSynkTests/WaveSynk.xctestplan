@@ -1,0 +1,58 @@
+{
+  "configurations" : [
+    {
+      "id" : "B85C0075-F0C1-4E11-9DB9-4A3C4E9F5F7C",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:WaveSynk.xcodeproj",
+      "identifier" : "WaveSynkTests",
+      "name" : "WaveSynkTests"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:WaveSynk.xcodeproj",
+        "identifier" : "WaveSynkTests",
+        "name" : "WaveSynkTests"
+      }
+    }
+  ],
+  "version" : 1,
+  "executionOrder": [
+    {
+      "testClass": "AuthAndAlertsIntegrationTests",
+      "testMethods": [
+        "testLoginFlow",
+        "testRegistrationFlow",
+        "testPhoneVerification"
+      ]
+    },
+    {
+      "testClass": "ForecastIntegrationTests",
+      "testMethods": [
+        "testFetchForecast",
+        "testFetchCurrentConditions",
+        "testForecastCaching",
+        "testCacheExpiration",
+        "testInvalidLocation",
+        "testOfflineMode"
+      ]
+    },
+    {
+      "testClass": "AuthAndAlertsIntegrationTests",
+      "testMethods": [
+        "testAlertCreation",
+        "testAlertLimits",
+        "testAlertFetch",
+        "testAuthenticationExpiration"
+      ]
+    }
+  ]
+} 
