@@ -1,9 +1,14 @@
 import SwiftUI
 import SwiftData
+import SafariServices
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var currentUser: User?
+    @Query(sort: \User.id) private var users: [User]
+    
+    private var currentUser: User? {
+        users.first
+    }
     
     @State private var notificationsEnabled = true
     @State private var showNotificationSettings = false
@@ -18,7 +23,7 @@ struct SettingsView: View {
             List {
                 Section("Notifications") {
                     Toggle("Enable Notifications", isOn: $notificationsEnabled)
-                        .onChange(of: notificationsEnabled) { newValue in
+                        .onChange(of: notificationsEnabled) { oldValue, newValue in
                             Task {
                                 await updateNotificationSettings(enabled: newValue)
                             }
@@ -59,6 +64,13 @@ struct SettingsView: View {
                     LabeledContent("Minimum iOS Version", value: Configuration.Version.minimumOSVersion)
                     Link("Privacy Policy", destination: URL(string: "https://wavesynk.com/privacy")!)
                     Link("Terms of Service", destination: URL(string: "https://wavesynk.com/terms")!)
+                    
+                    Button(action: {
+                        resetOnboarding()
+                    }) {
+                        Text("Reset Onboarding")
+                            .foregroundColor(DesignSystem.Colors.error)
+                    }
                 }
             }
             .navigationTitle("Settings")
@@ -73,7 +85,7 @@ struct SettingsView: View {
         .onAppear {
             notificationsEnabled = currentUser?.notificationsEnabled ?? true
         }
-        .onChange(of: currentUser?.notificationsEnabled) { newValue in
+        .onChange(of: currentUser?.notificationsEnabled) { oldValue, newValue in
             notificationsEnabled = newValue ?? true
         }
         .sheet(isPresented: $showNotificationSettings) {
@@ -122,6 +134,13 @@ struct SettingsView: View {
             try? modelContext.save()
             notificationsEnabled = !enabled
         }
+    }
+    
+    private func resetOnboarding() {
+        UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+        showError = false
+        errorMessage = "Onboarding has been reset. Restart the app to see the welcome screen."
+        showError = true
     }
 }
 

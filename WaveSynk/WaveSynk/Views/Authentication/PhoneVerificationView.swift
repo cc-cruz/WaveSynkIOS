@@ -43,7 +43,7 @@ struct PhoneVerificationView: View {
                 }
                 
                 if let error = viewModel.error {
-                    DesignSystem.ErrorMessage(message: error)
+                    DesignSystem.ErrorMessage(message: error.localizedDescription)
                 }
             }
             

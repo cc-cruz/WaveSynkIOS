@@ -4,7 +4,7 @@ import SwiftData
 struct CreateAlertView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    @Query private var spots: [Spot]
+    @Query(sort: \Spot.name) private var spots: [Spot]
     
     let selectedSpot: Spot?
     

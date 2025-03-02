@@ -16,8 +16,8 @@ final class Forecast: Codable {
     var swellPeriod: Decimal    // in seconds
     var confidence: Int         // forecast confidence (0-100)
     
-    // Relationship
-    @Relationship(inverse: \Spot.forecasts)
+    // Relationship - Fix circular reference
+    @Relationship
     var spot: Spot?
     
     init(id: Int,

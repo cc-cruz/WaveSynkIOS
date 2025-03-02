@@ -20,7 +20,7 @@ final class Alert: Codable {
     @Relationship(inverse: \User.alerts)
     var user: User?
     
-    @Relationship(inverse: \Spot.alerts)
+    @Relationship
     var spot: Spot?
     
     init(id: Int,

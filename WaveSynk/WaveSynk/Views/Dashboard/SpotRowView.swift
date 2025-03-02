@@ -76,7 +76,7 @@ struct SpotRowView: View {
 
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Spot.self, Alert.self, User.self, configurations: config)
+    let container = try! ModelContainer(for: Spot.self, Condition.self, configurations: config)
     let context = container.mainContext
     
     let spot = Spot(id: 1,
@@ -85,11 +85,8 @@ struct SpotRowView: View {
                     latitude: Decimal(37.7558),
                     longitude: Decimal(-122.5130),
                     region: "San Francisco",
-                    subRegion: "Northern California",
                     spotType: "Beach Break",
                     difficulty: "Advanced",
-                    consistency: "Good",
-                    metadata: [:],
                     isFavorite: true)
     
     let condition = Condition(id: 1,
@@ -98,15 +95,17 @@ struct SpotRowView: View {
                             waveHeight: Decimal(4.5),
                             wavePeriod: Decimal(12),
                             windSpeed: Decimal(10),
-                            windDirection: "NW")
+                            windDirection: "NW",
+                            swellDirection: Decimal(270),
+                            swellHeight: Decimal(3.5),
+                            swellPeriod: Decimal(10),
+                            quality: 4,
+                            isLive: true)
     
     spot.conditions = [condition]
     condition.spot = spot
     
-    let viewModel = DashboardViewModel(modelContext: context)
-    
     return SpotRowView(spot: spot)
         .modelContainer(container)
-        .environmentObject(viewModel)
-        .padding()
+        .environmentObject(DashboardViewModel())
 } 

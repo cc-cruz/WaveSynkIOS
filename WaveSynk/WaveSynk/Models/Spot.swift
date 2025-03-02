@@ -18,14 +18,14 @@ final class Spot: Codable {
     var isFavorite: Bool
     var lastUpdated: Date
     
-    // Relationships
-    @Relationship(deleteRule: .cascade, inverse: \Condition.spot)
+    // Relationships - Fix circular references
+    @Relationship(deleteRule: .cascade)
     var conditions: [Condition]?
     
-    @Relationship(deleteRule: .cascade, inverse: \Alert.spot)
+    @Relationship(deleteRule: .cascade)
     var alerts: [Alert]?
     
-    @Relationship(deleteRule: .cascade, inverse: \Forecast.spot)
+    @Relationship(deleteRule: .cascade)
     var forecasts: [Forecast]?
     
     init(id: Int,

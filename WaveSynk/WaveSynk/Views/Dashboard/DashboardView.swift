@@ -29,11 +29,13 @@ struct DashboardView: View {
                     .tag(1)
                 
                 // Alerts
-                AlertsView()
-                    .tabItem {
-                        Label("Alerts", systemImage: "bell.fill")
-                    }
-                    .tag(2)
+                NavigationView {
+                    AlertsView()
+                }
+                .tabItem {
+                    Label("Alerts", systemImage: "bell.fill")
+                }
+                .tag(2)
                 
                 // Profile/Settings
                 SettingsView()

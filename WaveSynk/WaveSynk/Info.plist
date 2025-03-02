@@ -5,7 +5,8 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>
-		<string>remote-notification</string>
+		<!-- Temporarily removed for personal team development -->
+		<!-- <string>remote-notification</string> -->
 	</array>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>

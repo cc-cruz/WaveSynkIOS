@@ -1,11 +1,11 @@
 import Foundation
 
-enum Environment {
+enum AppEnvironment {
     case development
     case staging
     case production
     
-    static var current: Environment {
+    static var current: AppEnvironment {
         #if DEBUG
         return .development
         #else
@@ -50,7 +50,7 @@ enum Configuration {
 
     // MARK: - API Configuration
     static var baseURL: String {
-        switch Environment.current {
+        switch AppEnvironment.current {
         case .development:
             return "https://dev-api.wavesynk.com/\(Version.apiVersion)"
         case .staging:
@@ -64,7 +64,7 @@ enum Configuration {
     static var noaaApiKey: String {
         // In a real app, these would be stored securely and possibly fetched from a secure server
         // For MVP, we'll use environment-specific keys
-        switch Environment.current {
+        switch AppEnvironment.current {
         case .development:
             return ProcessInfo.processInfo.environment["NOAA_API_KEY"] ?? "dev_key"
         case .staging:

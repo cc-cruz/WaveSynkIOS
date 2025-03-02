@@ -16,6 +16,8 @@ enum NetworkError: Error, LocalizedError {
     case badRequest(String)
     case tokenExpired
     case certificateValidationFailed
+    case authenticationFailed
+    case invalidVerificationCode
     
     var errorDescription: String? {
         switch self {
@@ -47,6 +49,10 @@ enum NetworkError: Error, LocalizedError {
             return "Your session has expired. Please log in again."
         case .certificateValidationFailed:
             return "Security validation failed. Please ensure you're using the official app and try again."
+        case .authenticationFailed:
+            return "Authentication failed. Please check your credentials and try again."
+        case .invalidVerificationCode:
+            return "Invalid verification code. Please try again."
         }
     }
 }
@@ -224,7 +230,7 @@ class NetworkManager {
     // MARK: - Authentication
     
     func login(username: String, password: String) async throws -> User {
-        let request = try createRequest("/auth/login", method: "POST")
+        var request = try createRequest("/auth/login", method: "POST")
         
         // Create request body
         let body: [String: Any] = [
@@ -235,7 +241,7 @@ class NetworkManager {
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
         // Perform request
-        let authResponse = try await executeRequest(request)
+        let authResponse: AuthResponse = try await executeRequest(request)
         
         // Store tokens
         authService.setTokens(
@@ -247,7 +253,7 @@ class NetworkManager {
     }
     
     func register(username: String, password: String, phone: String) async throws -> User {
-        let request = try createRequest("/auth/register", method: "POST")
+        var request = try createRequest("/auth/register", method: "POST")
         
         // Create request body
         let body: [String: Any] = [
@@ -259,7 +265,7 @@ class NetworkManager {
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
         // Perform request
-        let authResponse = try await executeRequest(request)
+        let authResponse: AuthResponse = try await executeRequest(request)
         
         // Store tokens
         authService.setTokens(
@@ -271,7 +277,7 @@ class NetworkManager {
     }
     
     func verifyPhone(code: String) async throws -> Bool {
-        let request = try createRequest("/auth/verify", method: "POST")
+        var request = try createRequest("/auth/verify", method: "POST")
         
         // Create request body
         let body: [String: Any] = [
@@ -293,7 +299,7 @@ class NetworkManager {
     }
     
     func requestPasswordReset(username: String) async throws {
-        let request = try createRequest("/auth/reset-password", method: "POST")
+        var request = try createRequest("/auth/reset-password", method: "POST")
         
         // Create request body
         let body: [String: Any] = [
@@ -316,10 +322,10 @@ class NetworkManager {
             }
         }
         
-        let request = try createRequest("/spots")
+        var request = try createRequest("/spots")
         
         // Perform request
-        let spots = try await executeRequest(request)
+        let spots: [Spot] = try await executeRequest(request)
         
         // Cache spots if offline mode is enabled
         if Configuration.enableOfflineMode {
@@ -336,10 +342,10 @@ class NetworkManager {
             throw NetworkError.unauthorized
         }
         
-        let request = try createRequest("/alerts/user/\(userId)")
+        var request = try createRequest("/alerts/user/\(userId)")
         
         // Perform request
-        let alerts = try await executeRequest(request)
+        let alerts: [Alert] = try await executeRequest(request)
         
         return alerts
     }
@@ -355,7 +361,7 @@ class NetworkManager {
             throw NetworkError.maxAlertsReached
         }
         
-        let request = try createRequest("/alerts", method: "POST")
+        var request = try createRequest("/alerts", method: "POST")
         
         // Create encoder
         let encoder = JSONEncoder()
@@ -365,7 +371,7 @@ class NetworkManager {
         request.httpBody = try encoder.encode(alert)
         
         // Perform request
-        let alertResponse = try await executeRequest(request)
+        let alertResponse: Alert = try await executeRequest(request)
         
         return alertResponse
     }
@@ -375,7 +381,7 @@ class NetworkManager {
             throw NetworkError.unauthorized
         }
         
-        let request = try createRequest("/alerts/\(alert.id)", method: "PUT")
+        var request = try createRequest("/alerts/\(alert.id)", method: "PUT")
         
         // Create encoder
         let encoder = JSONEncoder()
@@ -385,7 +391,7 @@ class NetworkManager {
         request.httpBody = try encoder.encode(alert)
         
         // Perform request
-        let alertResponse = try await executeRequest(request)
+        let alertResponse: Alert = try await executeRequest(request)
         
         return alertResponse
     }
@@ -457,7 +463,7 @@ class NetworkManager {
     // MARK: - Push Notifications
     
     func registerPushToken(_ token: String) async throws {
-        let request = try createRequest("/push/register", method: "POST")
+        var request = try createRequest("/push/register", method: "POST")
         let body = [
             "device_token": token,
             "platform": "ios",
@@ -469,7 +475,7 @@ class NetworkManager {
     }
     
     func unregisterPushToken(_ token: String) async throws {
-        let request = try createRequest("/push/unregister", method: "POST")
+        var request = try createRequest("/push/unregister", method: "POST")
         let body = ["device_token": token]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
@@ -477,7 +483,7 @@ class NetworkManager {
     }
     
     func updatePushPreferences(enabled: Bool) async throws {
-        let request = try createRequest("/push/preferences", method: "PUT")
+        var request = try createRequest("/push/preferences", method: "PUT")
         let body = ["enabled": enabled]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         

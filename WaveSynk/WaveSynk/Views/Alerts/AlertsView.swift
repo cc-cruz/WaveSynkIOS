@@ -24,175 +24,148 @@ struct AlertsView: View {
                     alertsList
                 }
             }
-            .navigationTitle("Surf Alerts")
+            .navigationTitle("My Alerts")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
+                    Button(action: {
                         showCreateAlert = true
-                    } label: {
+                    }) {
                         Image(systemName: "plus")
                     }
                 }
                 
-                if !alerts.isEmpty {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button {
-                            showInactiveAlerts.toggle()
-                        } label: {
-                            Image(systemName: showInactiveAlerts ? "bell.fill" : "bell.slash.fill")
-                        }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Toggle(isOn: $showInactiveAlerts) {
+                        Text("Show Inactive")
+                            .font(.caption)
                     }
+                    .toggleStyle(.switch)
+                    .labelsHidden()
                 }
             }
             .sheet(isPresented: $showCreateAlert) {
                 CreateAlertView()
             }
-            .alert("Delete Alert", isPresented: .constant(alertToDelete != nil)) {
+            .confirmationDialog(
+                "Are you sure you want to delete this alert?",
+                isPresented: .constant(alertToDelete != nil),
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    if let alert = alertToDelete {
+                        Task {
+                            await deleteAlert(alert)
+                        }
+                    }
+                    alertToDelete = nil
+                }
+                
                 Button("Cancel", role: .cancel) {
                     alertToDelete = nil
                 }
-                Button("Delete", role: .destructive) {
-                    deleteAlert()
-                }
-            } message: {
-                if let alert = alertToDelete {
-                    Text("Are you sure you want to delete the alert for \(alert.spot?.name ?? "Unknown Spot")?")
-                }
             }
         }
     }
     
+    // MARK: - Views
+    
     private var emptyStateView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             Image(systemName: "bell.slash")
-                .font(.system(size: 48))
-                .foregroundColor(.secondary)
+                .font(.system(size: 60))
+                .foregroundColor(.gray)
             
-            Text("No Alerts")
-                .font(.headline)
+            Text("No Alerts Yet")
+                .font(.title2)
+                .fontWeight(.bold)
             
-            Text("Create an alert to get notified when conditions are right")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+            Text("Create your first alert to get notified when conditions are perfect for surfing.")
                 .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
                 .padding(.horizontal)
             
-            Button {
+            Button(action: {
                 showCreateAlert = true
-            } label: {
+            }) {
                 Text("Create Alert")
-                    .bold()
+                    .fontWeight(.semibold)
+                    .padding()
+                    .background(DesignSystem.Colors.primary)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
             }
-            .buttonStyle(.borderedProminent)
+            .padding(.top)
         }
+        .padding()
     }
     
     private var noActiveAlertsView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "bell.slash")
-                .font(.system(size: 48))
-                .foregroundColor(.secondary)
+        VStack(spacing: 20) {
+            Image(systemName: "bell.badge.slash")
+                .font(.system(size: 60))
+                .foregroundColor(.gray)
             
             Text("No Active Alerts")
-                .font(.headline)
+                .font(.title2)
+                .fontWeight(.bold)
             
-            Text("All your alerts are currently disabled")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+            Text("You have alerts, but none are currently active. Toggle the switch to view inactive alerts.")
                 .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
                 .padding(.horizontal)
             
-            Button {
+            Button(action: {
                 showInactiveAlerts = true
-            } label: {
+            }) {
                 Text("Show Inactive Alerts")
-                    .bold()
+                    .fontWeight(.semibold)
+                    .padding()
+                    .background(Color.gray.opacity(0.2))
+                    .foregroundColor(.primary)
+                    .cornerRadius(10)
             }
-            .buttonStyle(.borderedProminent)
+            .padding(.top)
         }
+        .padding()
     }
     
     private var alertsList: some View {
         List {
-            ForEach(filteredAlerts) { alert in
-                AlertRowView(alert: alert)
-                    .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
-                            alertToDelete = alert
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
+            ForEach(filteredAlerts, id: \.id) { alert in
+                NavigationLink(destination: AlertDetailView(alert: alert)) {
+                    AlertRowView(alert: alert)
+                }
+                .swipeActions(edge: .trailing) {
+                    Button(role: .destructive) {
+                        alertToDelete = alert
+                    } label: {
+                        Label("Delete", systemImage: "trash")
                     }
-                    .swipeActions(edge: .leading) {
-                        Button {
-                            toggleAlert(alert)
-                        } label: {
-                            Label(alert.enabled ? "Disable" : "Enable",
-                                  systemImage: alert.enabled ? "bell.slash.fill" : "bell.fill")
-                        }
-                        .tint(alert.enabled ? .orange : .green)
+                }
+                .swipeActions(edge: .leading) {
+                    Button {
+                        toggleAlertEnabled(alert)
+                    } label: {
+                        Label(
+                            alert.enabled ? "Disable" : "Enable",
+                            systemImage: alert.enabled ? "bell.slash" : "bell.fill"
+                        )
                     }
+                    .tint(alert.enabled ? .gray : .green)
+                }
             }
         }
     }
     
-    private func deleteAlert() {
-        guard let alert = alertToDelete else { return }
-        
-        // Remove relationships before deleting
-        alert.spot?.alerts?.removeAll(where: { $0.id == alert.id })
-        alert.user?.alerts?.removeAll(where: { $0.id == alert.id })
-        
-        modelContext.delete(alert)
-        try? modelContext.save()
-        alertToDelete = nil
-    }
+    // MARK: - Alert Status Indicator
     
-    private func toggleAlert(_ alert: Alert) {
-        alert.enabled.toggle()
-        try? modelContext.save()
-    }
-}
-
-struct AlertRow: View {
-    let alert: SurfAlert
-    let onDelete: () -> Void
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(alert.spot.name)
-                    .font(.headline)
-                Spacer()
-                Menu {
-                    Button(role: .destructive) {
-                        onDelete()
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .foregroundColor(.secondary)
-                }
-            }
-            
-            Group {
-                conditionRow(title: "Wave Height", value: alert.waveHeightRange)
-                conditionRow(title: "Wind Speed", value: alert.windSpeedRange)
-                if let swellPeriod = alert.swellPeriodRange {
-                    conditionRow(title: "Swell Period", value: swellPeriod)
-                }
-            }
-            .font(.subheadline)
-            .foregroundColor(.secondary)
-            
-            HStack {
-                Image(systemName: "bell.fill")
-                    .foregroundColor(alert.isEnabled ? .green : .gray)
-                Text(alert.isEnabled ? "Active" : "Paused")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+    private func alertStatusIndicator(for alert: Alert) -> some View {
+        HStack {
+            Image(systemName: "bell.fill")
+                .foregroundColor(alert.enabled ? .green : .gray)
+            Text(alert.enabled ? "Active" : "Paused")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
         .padding(.vertical, 8)
     }
@@ -207,87 +180,134 @@ struct AlertRow: View {
 
 @MainActor
 class AlertsViewModel: ObservableObject {
-    @Published var alerts: [SurfAlert] = []
+    @Published var alerts: [Alert] = []
     @Published var isLoading = false
     @Published var error: String?
-    @Published var showError = false
     
     private let networkManager = NetworkManager.shared
     
-    init() {
-        Task {
-            await refresh()
-        }
-    }
-    
-    func refresh() async {
+    func fetchAlerts() async {
         isLoading = true
         error = nil
         
         do {
-            alerts = try await networkManager.fetchAlerts()
+            // Assuming we have a way to get the current user ID
+            let userId = UserDefaults.standard.integer(forKey: "currentUserId")
+            alerts = try await networkManager.fetchAlerts(for: userId)
         } catch {
-            self.error = "Failed to load alerts"
-            self.showError = true
+            self.error = error.localizedDescription
         }
         
         isLoading = false
     }
     
-    func deleteAlert(_ alert: SurfAlert) async {
+    func deleteAlert(_ alert: Alert) async {
+        isLoading = true
+        error = nil
+        
         do {
             try await networkManager.deleteAlert(alert.id)
-            if let index = alerts.firstIndex(where: { $0.id == alert.id }) {
-                alerts.remove(at: index)
-            }
+            // SwiftData will handle removing the alert from the alerts array
         } catch {
-            self.error = "Failed to delete alert"
-            self.showError = true
+            self.error = error.localizedDescription
+        }
+        
+        isLoading = false
+    }
+    
+    func toggleAlertEnabled(_ alert: Alert) {
+        // Toggle the enabled state
+        alert.enabled.toggle()
+        
+        // Update on the server
+        Task {
+            do {
+                try await networkManager.updateAlert(alert)
+            } catch {
+                // Revert the change if the server update fails
+                alert.enabled.toggle()
+                self.error = error.localizedDescription
+            }
         }
     }
 }
 
+// MARK: - View Extension
+
+extension AlertsView {
+    private func toggleAlertEnabled(_ alert: Alert) {
+        // Toggle the enabled state locally
+        alert.enabled.toggle()
+        
+        // Try to save the change
+        do {
+            try modelContext.save()
+            
+            // Update on the server
+            Task {
+                do {
+                    try await NetworkManager.shared.updateAlert(alert)
+                } catch {
+                    // Revert the change if the server update fails
+                    alert.enabled.toggle()
+                    try? modelContext.save()
+                }
+            }
+        } catch {
+            // Revert if local save fails
+            alert.enabled.toggle()
+        }
+    }
+    
+    private func deleteAlert(_ alert: Alert) async {
+        isLoading = false
+        
+        do {
+            try await networkManager.deleteAlert(alert.id)
+            // SwiftData will handle removing the alert from the alerts array
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+}
+
+// MARK: - Preview
+
 #Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Alert.self, Spot.self, User.self, configurations: config)
-    let context = container.mainContext
-    
-    // Create sample data
-    let user = User(id: 1, username: "testuser", phone: "+1234567890")
-    let spot = Spot(id: 1,
-                   name: "Ocean Beach",
-                   spitcastId: "OB",
-                   latitude: Decimal(37.7558),
-                   longitude: Decimal(-122.5130))
-    
-    let alert1 = Alert(id: 1,
-                     userId: 1,
-                     spotId: 1,
-                     minWaveHeight: Decimal(3),
-                     maxWaveHeight: Decimal(6),
-                     maxWindSpeed: Decimal(15),
-                     enabled: true)
-    
-    let alert2 = Alert(id: 2,
-                     userId: 1,
-                     spotId: 1,
-                     minWaveHeight: Decimal(2),
-                     maxWaveHeight: Decimal(4),
-                     maxWindSpeed: Decimal(10),
-                     enabled: false)
-    
-    alert1.user = user
-    alert1.spot = spot
-    alert2.user = user
-    alert2.spot = spot
-    user.alerts = [alert1, alert2]
-    spot.alerts = [alert1, alert2]
-    
-    context.insert(user)
-    context.insert(spot)
-    context.insert(alert1)
-    context.insert(alert2)
-    
-    return AlertsView()
-        .modelContainer(container)
+    NavigationView {
+        AlertsView()
+    }
+    .modelContainer(for: Alert.self, inMemory: true, isStoredInMemoryOnly: true) { container in
+        let spot = Spot(id: 1,
+                       name: "Mavericks",
+                       latitude: 37.4936,
+                       longitude: -122.5010,
+                       region: "Northern California",
+                       country: "USA")
+        
+        container.mainContext.insert(spot)
+        
+        let alert1 = Alert(id: 1,
+                          userId: 1,
+                          spotId: 1,
+                          minWaveHeight: Decimal(3),
+                          maxWaveHeight: Decimal(5),
+                          minWindSpeed: Decimal(5),
+                          maxWindSpeed: Decimal(15),
+                          preferredWindDirections: ["N", "NW"],
+                          enabled: true)
+        
+        let alert2 = Alert(id: 2,
+                          userId: 1,
+                          spotId: 1,
+                          minWaveHeight: Decimal(4),
+                          maxWaveHeight: Decimal(6),
+                          minWindSpeed: Decimal(3),
+                          maxWindSpeed: Decimal(10),
+                          preferredWindDirections: ["S", "SE"],
+                          enabled: false)
+        
+        container.mainContext.insert(alert1)
+        container.mainContext.insert(alert2)
+    }
 } 

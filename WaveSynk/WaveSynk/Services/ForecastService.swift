@@ -122,17 +122,17 @@ class ForecastService {
             let adjustmentFactor = calculateAdjustmentFactor(noaa: noaa, buoy: buoy, timePoint: timePoint)
             
             return Forecast(
-                id: UUID().uuidString,
+                id: Int.random(in: 1...1000),
                 spotId: spot.id,
                 timestamp: timePoint.timestamp,
-                waveHeight: timePoint.waveHeight * adjustmentFactor,
-                wavePeriod: timePoint.wavePeriod,
-                windSpeed: timePoint.windSpeed,
+                waveHeight: Decimal(timePoint.waveHeight * adjustmentFactor),
+                wavePeriod: Decimal(timePoint.wavePeriod),
+                windSpeed: Decimal(timePoint.windSpeed),
                 windDirection: timePoint.windDirection,
-                waterTemperature: buoy.waterTemperature,
-                swellDirection: timePoint.swellDirection,
-                swellHeight: timePoint.swellHeight * adjustmentFactor,
-                swellPeriod: timePoint.swellPeriod,
+                waterTemperature: buoy.waterTemperature != nil ? Decimal(buoy.waterTemperature!) : nil,
+                swellDirection: Decimal(timePoint.swellDirection),
+                swellHeight: Decimal(timePoint.swellHeight * adjustmentFactor),
+                swellPeriod: Decimal(timePoint.swellPeriod),
                 confidence: calculateConfidence(timePoint: timePoint, buoyData: buoy)
             )
         }
@@ -140,13 +140,18 @@ class ForecastService {
     
     private func processCurrentConditions(buoyData: BuoyData, for spot: Spot) throws -> Condition {
         return Condition(
-            id: Int.random(in: 1...1000), // In real app, use proper ID
+            id: Int.random(in: 1...1000),
             spotId: spot.id,
             timestamp: Date(),
             waveHeight: Decimal(buoyData.waveHeight),
             wavePeriod: Decimal(buoyData.wavePeriod),
             windSpeed: Decimal(buoyData.windSpeed),
-            windDirection: buoyData.windDirection
+            windDirection: buoyData.windDirection,
+            swellDirection: Decimal(buoyData.swellDirection),
+            swellHeight: Decimal(buoyData.swellHeight),
+            swellPeriod: Decimal(buoyData.wavePeriod),
+            quality: 3,
+            isLive: true
         )
     }
     
@@ -156,13 +161,18 @@ class ForecastService {
         }
         
         return Condition(
-            id: Int.random(in: 1...1000), // In real app, use proper ID
+            id: Int.random(in: 1...1000),
             spotId: spot.id,
             timestamp: Date(),
             waveHeight: Decimal(current.waveHeight),
             wavePeriod: Decimal(current.wavePeriod),
             windSpeed: Decimal(current.windSpeed),
-            windDirection: current.windDirection
+            windDirection: current.windDirection,
+            swellDirection: Decimal(current.swellDirection),
+            swellHeight: Decimal(current.swellHeight),
+            swellPeriod: Decimal(current.swellPeriod),
+            quality: 2,
+            isLive: false
         )
     }
     
@@ -223,6 +233,9 @@ struct BuoyData {
     let windDirection: String
     let waterTemperature: Double?
     let timestamp: Date
+    let swellDirection: Double = 0.0
+    let swellHeight: Double = 0.0
+    let swellPeriod: Double = 0.0
 }
 
 struct Buoy {
@@ -246,6 +259,6 @@ class CachedForecast {
     }
 }
 
-private enum Configuration {
+private enum ForecastConfiguration {
     static let noaaApiKey = "YOUR_NOAA_API_KEY" // Move to secure configuration
 } 

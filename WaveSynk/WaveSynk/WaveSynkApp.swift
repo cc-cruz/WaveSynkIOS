@@ -24,13 +24,74 @@ struct WaveSynkApp: App {
 
     var body: some Scene {
         WindowGroup {
-            DashboardView()
+            ZStack {
+                // Check if we should show the direct welcome screen
+                if UserDefaults.standard.bool(forKey: "showDirectWelcome") {
+                    DirectWelcomeView()
+                } else {
+                    OnboardingView()
+                }
+                
+                // Temporary buttons to control views
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 10) {
+                            // Button to show normal onboarding flow
+                            Button(action: {
+                                // Reset onboarding state
+                                UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+                                UserDefaults.standard.set(false, forKey: "showDirectWelcome")
+                                // Force app refresh
+                                NotificationCenter.default.post(name: NSNotification.Name("RefreshApp"), object: nil)
+                            }) {
+                                Text("Show Onboarding")
+                                    .font(.caption)
+                                    .padding(8)
+                                    .background(Color.blue.opacity(0.8))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                            }
+                            
+                            // Button to show direct welcome screen
+                            Button(action: {
+                                // Set flag to show direct welcome
+                                UserDefaults.standard.set(true, forKey: "showDirectWelcome")
+                                // Force app refresh
+                                NotificationCenter.default.post(name: NSNotification.Name("RefreshApp"), object: nil)
+                            }) {
+                                Text("Show Welcome")
+                                    .font(.caption)
+                                    .padding(8)
+                                    .background(Color.green.opacity(0.8))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                            }
+                        }
+                        .padding()
+                    }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RefreshApp"))) { _ in
+                // This will force a view refresh
+            }
         }
         .modelContainer(sharedModelContainer)
     }
 }
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+    // Flag to determine if push notifications are available
+    private var pushNotificationsAvailable: Bool {
+        #if DEBUG
+        // For development with personal team, disable push notifications
+        return false
+        #else
+        return true
+        #endif
+    }
+    
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         // Configure background fetch
         UIApplication.shared.setMinimumBackgroundFetchInterval(Configuration.alertCheckInterval)
@@ -149,6 +210,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     // MARK: - Push Notification Registration
     
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        // Skip push notification handling when not available
+        guard pushNotificationsAvailable else { return }
+        
         Task { @MainActor in
             do {
                 try await PushNotificationService.shared.setDeviceToken(deviceToken)
@@ -161,6 +225,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     }
     
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        // Skip push notification handling when not available
+        guard pushNotificationsAvailable else { return }
+        
         print("Failed to register for remote notifications: \(error.localizedDescription)")
         // In a production app, we might want to show an alert to the user
         // or try to re-register after a delay

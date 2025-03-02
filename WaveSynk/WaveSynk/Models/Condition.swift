@@ -17,8 +17,8 @@ final class Condition: Codable {
     var quality: Int            // wave quality rating (0-5)
     var isLive: Bool           // whether this is live buoy data
     
-    // Relationship
-    @Relationship(inverse: \Spot.conditions)
+    // Relationship - Fix circular reference
+    @Relationship
     var spot: Spot?
     
     init(id: Int,

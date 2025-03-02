@@ -3,7 +3,7 @@ import Foundation
 
 enum TestConfiguration {
     // MARK: - Test Environment
-    static let environment: Environment = .development
+    static let environment: AppEnvironment = .development
     
     // MARK: - Mock API Configuration
     static let mockBaseURL = "https://mock-api.wavesynk.com/v1"

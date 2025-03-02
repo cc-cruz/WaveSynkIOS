@@ -101,7 +101,7 @@ struct RegisterView: View {
                 }
                 
                 if let error = viewModel.error {
-                    DesignSystem.ErrorMessage(message: error)
+                    DesignSystem.ErrorMessage(message: error.localizedDescription)
                 }
             }
             
@@ -158,7 +158,7 @@ struct RegisterView: View {
         let usernamePattern = "^[a-zA-Z0-9_]{3,20}$"
         if username.isEmpty {
             usernameError = "Username is required"
-        } else if !username.range(of: usernamePattern, options: .regularExpression) != nil {
+        } else if username.range(of: usernamePattern, options: .regularExpression) == nil {
             usernameError = "Username must be 3-20 characters and contain only letters, numbers, and underscores"
         } else {
             usernameError = nil

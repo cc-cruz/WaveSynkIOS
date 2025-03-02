@@ -6,11 +6,11 @@ class AuthenticationViewModel: ObservableObject {
     @Published var currentUser: User?
     @Published var isAuthenticated = false
     @Published var isLoading = false
-    @Published var error: String?
+    @Published var error: Error?
     @Published var showPhoneVerification = false
     
-    private let networkManager = NetworkManager.shared
     private let authService = AuthenticationService.shared
+    private let networkManager = NetworkManager.shared
     
     init() {
         // Check for existing authentication
@@ -20,85 +20,85 @@ class AuthenticationViewModel: ObservableObject {
     // MARK: - Authentication Methods
     func login(username: String, password: String) {
         Task {
-            isLoading = true
-            error = nil
+            self.isLoading = true
+            self.error = nil
             
             do {
-                if authService.canUseBiometricAuthentication() {
+                if self.authService.canUseBiometricAuthentication() {
                     // If biometrics available, verify before proceeding
-                    guard try await authService.authenticateWithBiometrics() else {
-                        error = "Biometric authentication failed"
-                        isLoading = false
+                    guard try await self.authService.authenticateWithBiometrics() else {
+                        self.error = NetworkError.authenticationFailed
+                        self.isLoading = false
                         return
                     }
                 }
                 
-                currentUser = try await networkManager.login(username: username, password: password)
-                isAuthenticated = true
+                self.currentUser = try await self.networkManager.login(username: username, password: password)
+                self.isAuthenticated = true
             } catch NetworkError.invalidCredentials {
-                error = "Invalid username or password"
+                self.error = NetworkError.invalidCredentials
             } catch {
-                error = "Failed to log in. Please try again."
+                self.error = error
             }
             
-            isLoading = false
+            self.isLoading = false
         }
     }
     
     func register(username: String, password: String, phone: String) {
         Task {
-            isLoading = true
-            error = nil
+            self.isLoading = true
+            self.error = nil
             
             do {
-                currentUser = try await networkManager.register(username: username, 
+                self.currentUser = try await self.networkManager.register(username: username, 
                                                               password: password, 
                                                               phone: phone)
-                showPhoneVerification = true
+                self.showPhoneVerification = true
             } catch NetworkError.registrationError(let message) {
-                error = message
+                self.error = NetworkError.registrationError(message)
             } catch {
-                error = "Failed to create account. Please try again."
+                self.error = error
             }
             
-            isLoading = false
+            self.isLoading = false
         }
     }
     
     func verifyPhone(code: String) {
         Task {
-            isLoading = true
-            error = nil
+            self.isLoading = true
+            self.error = nil
             
             do {
-                let verified = try await networkManager.verifyPhone(code: code)
+                let verified = try await self.networkManager.verifyPhone(code: code)
                 if verified {
-                    showPhoneVerification = false
-                    isAuthenticated = true
+                    self.showPhoneVerification = false
+                    self.isAuthenticated = true
                 } else {
-                    error = "Invalid verification code"
+                    self.error = NetworkError.invalidVerificationCode
                 }
             } catch {
-                error = "Failed to verify phone number. Please try again."
+                self.error = error
             }
             
-            isLoading = false
+            self.isLoading = false
         }
     }
     
     func resetPassword(username: String) {
         Task {
-            isLoading = true
-            error = nil
+            self.isLoading = true
+            self.error = nil
             
             do {
-                try await networkManager.requestPasswordReset(username: username)
+                try await self.networkManager.requestPasswordReset(username: username)
                 // Show success message or navigate to next step
             } catch {
-                error = "Failed to request password reset. Please try again."
+                self.error = error
             }
             
-            isLoading = false
+            self.isLoading = false
         }
     }
     

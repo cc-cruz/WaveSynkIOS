@@ -320,7 +320,7 @@ extension Data {
 extension CertificatePinningService {
     // Helper method to get the appropriate host for the current environment
     static func hostForCurrentEnvironment() -> String {
-        switch Configuration.Environment.current {
+        switch AppEnvironment.current {
         case .development:
             return "dev-api.wavesynk.com"
         case .staging:

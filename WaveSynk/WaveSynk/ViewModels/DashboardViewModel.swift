@@ -3,7 +3,7 @@ import CoreLocation
 import SwiftData
 
 @MainActor
-class DashboardViewModel: ObservableObject {
+class DashboardViewModel: NSObject, ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
     @Published var userLocation: CLLocation?
@@ -13,9 +13,12 @@ class DashboardViewModel: ObservableObject {
     private let locationManager: CLLocationManager
     private var modelContext: ModelContext?
     
-    init() {
+    override init() {
         self.locationManager = CLLocationManager()
         self.locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        
+        super.init()
+        
         self.locationManager.delegate = self
         
         // Check initial authorization status

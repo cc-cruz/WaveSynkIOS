@@ -68,7 +68,9 @@ struct AlertRowView: View {
                      spotId: 1,
                      minWaveHeight: Decimal(3),
                      maxWaveHeight: Decimal(6),
+                     minWindSpeed: Decimal(5),
                      maxWindSpeed: Decimal(15),
+                     preferredWindDirections: ["N", "NW", "W"],
                      enabled: true)
     
     alert.spot = spot
