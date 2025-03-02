@@ -78,10 +78,57 @@ class AuthenticationService {
         }
     }
     
-    private func refreshTokens(_ refreshToken: String) async throws -> (access: String, refresh: String) {
-        // TODO: Implement actual token refresh API call
-        // This is a placeholder that should be replaced with actual API call
-        throw NSError(domain: "Not Implemented", code: -1)
+    func refreshTokens(_ refreshToken: String) async throws -> (access: String, refresh: String) {
+        let baseURL = Configuration.baseURL
+        guard let url = URL(string: "\(baseURL)/auth/refresh") else {
+            throw NSError(domain: "Invalid URL", code: -1)
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // Create request body
+        let body = ["refresh_token": refreshToken]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        
+        // Perform request
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        // Validate response
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NSError(domain: "Invalid Response", code: -1)
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            // Parse response
+            let decoder = JSONDecoder()
+            let tokenResponse = try decoder.decode([String: String].self, from: data)
+            
+            guard let newAccessToken = tokenResponse["access_token"],
+                  let newRefreshToken = tokenResponse["refresh_token"] else {
+                throw NSError(domain: "Invalid Token Response", code: -1)
+            }
+            
+            return (access: newAccessToken, refresh: newRefreshToken)
+            
+        case 401:
+            throw NSError(domain: "Unauthorized", code: 401)
+            
+        default:
+            throw NSError(domain: "Token Refresh Failed", code: httpResponse.statusCode)
+        }
+    }
+    
+    // MARK: - Current Token Access
+    
+    var currentAccessToken: String? {
+        return accessToken
+    }
+    
+    var currentRefreshToken: String? {
+        return refreshToken
     }
     
     // MARK: - Biometric Authentication

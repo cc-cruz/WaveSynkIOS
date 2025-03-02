@@ -38,7 +38,112 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         // Configure notification center delegate
         UNUserNotificationCenter.current().delegate = self
         
+        #if DEBUG
+        // Extract certificate hashes for pinning (only in debug builds)
+        extractCertificateHashes()
+        #else
+        // In production, set up certificate rotation
+        setupCertificateRotation()
+        #endif
+        
         return true
+    }
+    
+    #if DEBUG
+    private func extractCertificateHashes() {
+        Task {
+            // Create a progress indicator
+            print("Starting certificate hash extraction...")
+            
+            // Extract hashes for all environments
+            let hosts = [
+                "api.wavesynk.com",
+                "dev-api.wavesynk.com",
+                "staging-api.wavesynk.com"
+            ]
+            
+            var successCount = 0
+            
+            for host in hosts {
+                if let hash = await CertificateHashExtractor.extractPublicKeyHash(from: host) {
+                    print("✅ Successfully extracted hash for \(host): \(hash)")
+                    
+                    // Add the hash to the trusted hashes
+                    CertificatePinningService.shared.addTrustedHash(hash, for: host)
+                    successCount += 1
+                } else {
+                    print("❌ Failed to extract hash for \(host)")
+                }
+            }
+            
+            print("Certificate extraction complete: \(successCount)/\(hosts.count) successful")
+            
+            // Schedule periodic certificate checks
+            scheduleCertificateChecks()
+        }
+    }
+    
+    private func scheduleCertificateChecks() {
+        // Schedule a task to check certificates periodically
+        Task {
+            // Wait for 24 hours before checking again
+            try? await Task.sleep(nanoseconds: 24 * 60 * 60 * 1_000_000_000)
+            
+            // Only continue if the app is still running
+            if !Task.isCancelled {
+                await checkCertificates()
+                scheduleCertificateChecks()
+            }
+        }
+    }
+    
+    private func checkCertificates() async {
+        print("Performing periodic certificate check...")
+        
+        let hosts = [
+            "api.wavesynk.com",
+            "dev-api.wavesynk.com",
+            "staging-api.wavesynk.com"
+        ]
+        
+        for host in hosts {
+            if let hash = await CertificateHashExtractor.extractPublicKeyHash(from: host) {
+                // Add the hash to the trusted hashes (it will only be added if it's new)
+                CertificatePinningService.shared.addTrustedHash(hash, for: host)
+            }
+        }
+    }
+    #endif
+    
+    // MARK: - Certificate Rotation
+    
+    func setupCertificateRotation() {
+        // Schedule certificate rotation checks
+        Task {
+            while true {
+                // Check certificates every week
+                try? await Task.sleep(nanoseconds: 7 * 24 * 60 * 60 * 1_000_000_000)
+                
+                // Fetch updated certificates from a secure endpoint
+                await fetchUpdatedCertificates()
+            }
+        }
+    }
+    
+    private func fetchUpdatedCertificates() async {
+        // In a production app, this would fetch updated certificate hashes from a secure endpoint
+        // For now, we'll just log that we would do this
+        print("Would fetch updated certificate hashes from secure endpoint")
+        
+        // Example of how this might work:
+        // 1. Make a request to a secure endpoint that provides certificate hashes
+        // 2. Verify the response using a separate verification mechanism (e.g., code signing)
+        // 3. Update the trusted hashes in the CertificatePinningService
+        
+        // For testing, we can use the CertificateHashExtractor to get current hashes
+        #if DEBUG
+        await checkCertificates()
+        #endif
     }
     
     // MARK: - Push Notification Registration
